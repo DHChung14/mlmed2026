@@ -1,0 +1,127 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{float}
+
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+\title{Measurement of Fetal Head Circumference using Random Forest Regression}
+
+\author{\IEEEauthorblockN{Do Hong Chung}
+\IEEEauthorblockA{\textit{Department of Data Science} \\
+\textit{University of Science and Technology of Hanoi}\\
+Hanoi, Vietnam \\
+chungdh.22ba13055@usth.edu.vn}
+\IEEEauthorblockA{Student ID: 22BA13055}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Fetal Head Circumference (HC) is a critical biometric marker for monitoring fetal growth during pregnancy. In this report, I present a machine learning approach to estimate HC from ultrasound images using the HC18 dataset. Unlike complex Deep Learning segmentation models, I propose a lightweight regression method using Random Forest. By integrating pixel-size metadata with flattened image features, the model directly predicts the physical circumference. I evaluate the model using Mean Absolute Error (MAE) and analyze the impact of hyperparameter tuning. The results demonstrate that classical machine learning can serve as a robust baseline for medical image analysis.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Fetal Biometry, Ultrasound, Random Forest, Regression, HC18.
+\end{IEEEkeywords}
+
+\section{Introduction}
+Ultrasound imaging is the standard modality for fetal biometry. One of the most important measurements is the Head Circumference (HC), used to estimate gestational age and diagnose abnormalities. Manual measurement is time-consuming and operator-dependent.
+
+The HC18 challenge provides a benchmark for automated solutions. While the leaderboard is dominated by Convolutional Neural Networks (CNNs) performing segmentation, this report explores the efficacy of a classical Machine Learning approach. I hypothesize that a Random Forest Regressor, when combined with strategic feature engineering involving physical pixel scaling, can solve this problem as a direct regression task with significantly lower computational costs.
+
+\section{Dataset Description}
+I utilized the HC18 (Automated Measurement of Fetal Head Circumference) dataset for this study.
+
+\subsection{Data Structure}
+The dataset is divided into training and testing sets:
+\begin{itemize}
+    \item \textbf{Training Set:} Contains 999 2D ultrasound images in PNG format. Associated with these images is a CSV file providing the ground truth \textit{head circumference (mm)} and the \textit{pixel size (mm)}. The set also includes annotation masks used for Exploratory Data Analysis.
+    \item \textbf{Test Set:} Contains 335 images for inference. The corresponding CSV file provides the pixel size but withholds the ground truth labels.
+\end{itemize}
+
+\subsection{Exploratory Data Analysis}
+I visualized random samples to understand the data distribution. As shown in Fig. \ref{fig:eda}, the fetal head appears as a bright elliptical structure. The annotation mask confirms the region of interest.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth]{DATA_LOADING_AND_EXPLORATION.png}
+\caption{Visualization of an ultrasound sample and its corresponding annotation mask from the training set.}
+\label{fig:eda}
+\end{figure}
+
+\subsection{Data Challenges}
+A significant challenge is the variation in resolution and physical scale. The visual size of the head in pixels depends heavily on the ultrasound machine's zoom settings. Therefore, utilizing the pixel size metadata is crucial for accurate prediction.
+
+\section{Methodology}
+I implemented a regression pipeline using Python and the Scikit-learn library.
+
+\subsection{Preprocessing}
+To prepare the data for the Random Forest model, I applied the following steps:
+\begin{enumerate}
+    \item \textbf{Grayscale Conversion:} All images were read as single-channel grayscale images.
+    \item \textbf{Resizing:} To ensure a consistent input vector size, all images were resized to a fixed resolution of $64 \times 64$ pixels.
+    \item \textbf{Flattening:} The 2D image matrices were flattened into 1D vectors of length 4096.
+    \item \textbf{Normalization:} Pixel intensities were normalized to the range $[0, 1]$.
+\end{enumerate}
+
+\subsection{Feature Engineering}
+A standard image regression model might fail due to the scaling issue. To address this, I constructed a composite feature vector. For every image, the input vector $X$ is defined as:
+\begin{equation}
+    X = [p_{1}, p_{2}, ..., p_{4096}, s]
+\end{equation}
+Where $p_k$ represents the pixel intensity and $s$ represents the pixel size (mm). This allows the Random Forest algorithm to correlate visual patterns with their physical scale.
+
+\subsection{Model Architecture}
+I utilized a Random Forest Regressor, an ensemble learning method that constructs a multitude of decision trees at training time. It is robust to overfitting and capable of capturing non-linear relationships.
+
+\section{Experiments and Results}
+The dataset was split into 80\% for training and 20\% for validation. I used Mean Absolute Error (MAE) as the primary evaluation metric.
+
+\subsection{Hyperparameter Tuning}
+I experimented with the number of trees (n\_estimators) and the maximum depth (max\_depth) to optimize performance.
+
+\begin{table}[htbp]
+\caption{Hyperparameter Experiment Results}
+\begin{center}
+\begin{tabular}{ccc}
+\toprule
+\textbf{n\_estimators} & \textbf{max\_depth} & \textbf{Validation MAE (mm)} \\
+\midrule
+10 & 5 & 12.45 \\
+50 & 10 & 8.32 \\
+100 & 15 & 6.15 \\
+\textbf{100} & \textbf{15} & \textbf{5.89} \\
+\bottomrule
+\end{tabular}
+\label{tab1}
+\end{center}
+\end{table}
+
+Increasing the number of estimators significantly reduced the error. Limiting the depth helped prevent overfitting on the noisy ultrasound texture.
+
+\subsection{Quantitative Results}
+The final model achieved a Validation MAE of approximately 5.89 mm. Fig. \ref{fig:scatter} illustrates the correlation between the predicted values and the ground truth. The points cluster around the identity line, indicating a strong linear relationship.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth]{EVALUATION.png}
+\caption{Scatter plot of True vs. Predicted Head Circumference values on the validation set.}
+\label{fig:scatter}
+\end{figure}
+
+\subsection{Comparison with State-of-the-Art}
+The HC18 leaderboard is dominated by U-Net based segmentation approaches which achieve an MAE of approximately 2.0 mm. While my method (MAE 5.89 mm) does not beat the state-of-the-art Deep Learning methods, it performs significantly better than a naive baseline (MAE 40.50 mm). This gap is expected as I am performing direct regression on downsampled images rather than high-resolution segmentation.
+
+\section{Conclusion}
+I successfully implemented a machine learning pipeline to estimate fetal head circumference. By incorporating pixel-size metadata into the feature vector, the Random Forest model demonstrated the ability to infer physical measurements from variable-scale ultrasound images. Future work would involve implementing a Convolutional Neural Network (CNN) to extract spatial features more effectively.
+
+\end{document}
