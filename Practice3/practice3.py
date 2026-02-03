@@ -10,9 +10,9 @@ from torch.utils.data import Dataset, DataLoader
 
 # 1. CONFIGURATION
 DATA_DIR = r'C:\Users\ADMIN\Pictures\Machine Learning in Medicine\Practice_3\Infection Segmentation Data'
-IMG_SIZE = 128       
-BATCH_SIZE = 32     
-EPOCHS = 5           
+IMG_SIZE = 128
+BATCH_SIZE = 32
+EPOCHS = 6
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # 2. DATASET LOADER
@@ -94,8 +94,7 @@ class MiniUNet(nn.Module):
     
 # 4. TRAINING LOOP
 if __name__ == "__main__":
-    if not os.path.exists(DATA_DIR):
-        print(f"Error: Path {DATA_DIR} not found!"); exit()
+    if not os.path.exists(DATA_DIR): print("Path error"); exit()
     print("Loading Infection Dataset...")
     train_ds = InfectionDataset(DATA_DIR, 'Train')
     val_ds = InfectionDataset(DATA_DIR, 'Val')
@@ -109,7 +108,6 @@ if __name__ == "__main__":
     for epoch in range(EPOCHS):
         model.train()
         epoch_loss = 0
-        step = 0
         for imgs, masks in train_loader:
             imgs, masks = imgs.to(DEVICE), masks.to(DEVICE)
             optimizer.zero_grad()
@@ -118,52 +116,36 @@ if __name__ == "__main__":
             loss.backward()
             optimizer.step()
             epoch_loss += loss.item()
-            step += 1
-            if step % 20 == 0:
-                print(f"Epoch {epoch+1} | Step {step}/{len(train_loader)} | Loss: {loss.item():.4f}")
         avg = epoch_loss / len(train_loader)
         losses.append(avg)
-        print(f"=== DONE EPOCH {epoch+1}/{EPOCHS} - Avg Loss: {avg:.4f} ===")
+        print(f"Epoch {epoch+1}/{EPOCHS} - Avg Loss: {avg:.4f}")
 
     # 5. VISUALIZATION
     model.eval()
     found = False
     for imgs, masks in val_loader:
-        if masks[:, 1, :, :].max() > 0: 
+        if masks[:, 1, :, :].max() > 0:
             imgs, masks = imgs.to(DEVICE), masks.to(DEVICE)
-            with torch.no_grad():
-                preds = model(imgs)
-            found = True
-            break
+            with torch.no_grad(): preds = model(imgs)
+            found = True; break
     if not found:
         imgs, masks = next(iter(val_loader))
         imgs, masks = imgs.to(DEVICE), masks.to(DEVICE)
         preds = model(imgs)
     idx = 0
     plt.figure(figsize=(12, 4))
-    plt.subplot(1, 4, 1)
-    plt.imshow(imgs[idx].cpu().squeeze(), cmap='gray')
-    plt.title("Input X-ray")
-    plt.axis('off')
-    plt.subplot(1, 4, 2)
-    plt.imshow(masks[idx, 0].cpu(), cmap='bone')
-    plt.title("GT Lung")
-    plt.axis('off')
-    plt.subplot(1, 4, 3)
-    plt.imshow(masks[idx, 1].cpu(), cmap='jet', vmin=0, vmax=1)
-    plt.title("GT Infection")
-    plt.axis('off')
-    plt.subplot(1, 4, 4)
-    plt.imshow(preds[idx, 1].cpu(), cmap='jet', vmin=0, vmax=1)
-    plt.title("AI Pred Infection")
-    plt.axis('off')
-    plt.tight_layout()
-    plt.savefig('SEGMENTATION_RESULT.png')
+    plt.subplot(1, 4, 1); plt.imshow(imgs[idx].cpu().squeeze(), cmap='gray'); plt.title("Input"); plt.axis('off')
+    plt.subplot(1, 4, 2); plt.imshow(masks[idx, 0].cpu(), cmap='bone'); plt.title("Lung"); plt.axis('off')
+    plt.subplot(1, 4, 3); plt.imshow(masks[idx, 1].cpu(), cmap='jet', vmin=0, vmax=1); plt.title("Inf"); plt.axis('off')
+    plt.subplot(1, 4, 4); plt.imshow(preds[idx, 1].cpu(), cmap='jet', vmin=0, vmax=1); plt.title("Pred"); plt.axis('off')
+    plt.tight_layout(); plt.savefig('SEGMENTATION_RESULT.png')
     plt.figure()
-    plt.plot(losses)
+    from matplotlib.ticker import MaxNLocator
+    plt.plot(range(1, len(losses)+1), losses, 'b-o')
     plt.title("Training Loss")
-    plt.savefig('LOSS_CURVE.png')
-    print("Done! Check SEGMENTATION_RESULT.png and LOSS_CURVE.png")
+    plt.xlabel("Epochs"); plt.ylabel("Loss")
+    plt.gca().xaxis.set_major_locator(MaxNLocator(integer=True))
+    plt.grid(True); plt.savefig('LOSS_CURVE.png')
     
 # 6. QUANTITATIVE EVALUATION
 def calculate_metrics(pred, target, threshold=0.5):
