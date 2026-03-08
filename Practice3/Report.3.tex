@@ -1,0 +1,142 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{multirow}
+
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+\title{Segmentation of COVID-19 Infection Area in X-Ray Images using Lightweight U-Net}
+
+\author{\IEEEauthorblockN{Do Hong Chung}
+\IEEEauthorblockA{\textit{Department of Data Science} \\
+\textit{University of Science and Technology of Hanoi}\\
+Hanoi, Vietnam \\
+chungdh.22ba13055@usth.edu.vn}
+\IEEEauthorblockA{Student ID: 22BA13055}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+The COVID-19 pandemic has necessitated the development of rapid and automated diagnostic tools. In this study, I address the task of semantic segmentation to identify infection lesions in Chest X-ray images. Utilizing the Infection Segmentation Data (a subset of COVID-QU-Ex), I propose a lightweight deep learning model based on a modified "Mini U-Net" architecture. The model is designed to be computationally efficient, operating on $128 \times 128$ resolution images while maintaining segmentation capability. Experimental results over 6 training epochs demonstrate that the model can localize infection regions effectively with limited computational resources.
+\end{abstract}
+
+\begin{IEEEkeywords}
+COVID-19, Semantic Segmentation, Mini U-Net, Deep Learning, Medical Imaging, Resource-Efficient AI.
+\end{IEEEkeywords}
+
+\section{Introduction}
+Chest X-ray (CXR) imaging is a primary screening method for respiratory diseases due to its accessibility and speed. However, quantifying the extent of COVID-19 infection from CXR images is challenging for radiologists, as infection signs like Ground Glass Opacities (GGO) often have fuzzy boundaries and low contrast against healthy tissue.
+
+The objective of this practice is to build a Machine Learning model to segment the infection area from the background. I focus on optimizing the U-Net architecture to balance performance and training speed on personal computing hardware.
+
+\section{Dataset and Preprocessing}
+
+\subsection{Dataset Description}
+I utilized the \textbf{Infection Segmentation Data}, a curated subset of the COVID-QU-Ex dataset. The dataset is organized into \texttt{Train}, \texttt{Val}, and \texttt{Test} sets.
+\begin{itemize}
+    \item \textbf{Input:} Grayscale Chest X-ray images.
+    \item \textbf{Target:} Two types of masks were used:
+    \begin{enumerate}
+        \item \textbf{Lung Mask:} Identifies the lung field.
+        \item \textbf{Infection Mask:} Identifies the lesions (Ground Glass Opacities/Consolidation).
+    \end{enumerate}
+\end{itemize}
+The training set consists of approximately 3,728 images, including both COVID-19 positive cases (with explicit infection masks) and Normal/Non-COVID cases (where empty masks were generated).
+
+\subsection{Preprocessing}
+To ensure the model fits within memory constraints and trains efficiently:
+\begin{itemize}
+    \item \textbf{Resizing:} All images and masks were resized to $128 \times 128$ pixels.
+    \item \textbf{Normalization:} Pixel intensities were scaled to the range $[0, 1]$.
+    \item \textbf{Mask Handling:} For images without an infection mask file (Normal cases), a zero-filled matrix was automatically generated to represent the "healthy" class.
+\end{itemize}
+
+\section{Methodology}
+
+\subsection{Model Architecture: Mini U-Net}
+Instead of the standard U-Net which is computationally heavy (starting with 64 filters), I implemented a \textbf{"Mini U-Net"} variant.
+\begin{itemize}
+    \item \textbf{Structure:} The encoder starts with 16 filters and doubles at each depth ($16 \rightarrow 32 \rightarrow 64 \rightarrow 128$). This reduces the number of parameters significantly (approx. $16\times$ fewer than standard U-Net).
+    \item \textbf{Decoder:} Uses bilinear upsampling followed by convolution blocks to recover spatial resolution.
+    \item \textbf{Output:} The final layer uses a Sigmoid activation to produce a 2-channel probability map (Lung and Infection).
+\end{itemize}
+
+\subsection{Training Configuration}
+The model was trained with the following hyperparameters:
+\begin{itemize}
+    \item \textbf{Loss Function:} Binary Cross Entropy (BCE) Loss.
+    \item \textbf{Optimizer:} Adam ($lr=1e-4$).
+    \item \textbf{Batch Size:} 32.
+    \item \textbf{Epochs:} 6.
+    \item \textbf{Hardware:} The training was conducted on a personal computer environment.
+\end{itemize}
+
+\section{Results}
+
+\subsection{Qualitative Analysis}
+Fig. \ref{fig:res} visualizes the segmentation performance on the validation set. The Mini U-Net successfully identifies the lung boundaries (green channel) and localizes the main infection regions (red/yellow channel).
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth]{SEGMENTATION_RESULT.png}
+\caption{Visualization of Segmentation Results. Left to Right: Input X-ray, Ground Truth Lung, Ground Truth Infection, and Predicted Infection.}
+\label{fig:res}
+\end{figure}
+
+\subsection{Quantitative Evaluation}
+The model's performance on the infection class was evaluated using the Dice Coefficient and Intersection over Union (IoU) on the validation set.
+
+\begin{table}[htbp]
+\caption{Performance Metrics on Validation Set (6 Epochs)}
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{Target Class} & \textbf{Mean Dice Score} & \textbf{Mean IoU} \\
+\hline
+\textbf{Infection Area} & \textbf{0.3202} & \textbf{0.2534} \\
+\hline
+\end{tabular}
+\label{tab1}
+\end{center}
+\end{table}
+
+\subsection{Training Convergence}
+Fig. \ref{fig:loss} illustrates the quantitative progress of the training phase over 6 epochs. The model demonstrated a stable learning curve, with the Binary Cross Entropy (BCE) loss decreasing consistently.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\linewidth]{LOSS_CURVE.png}
+\caption{Training Loss Curve (Epoch 1 to 6).}
+\label{fig:loss}
+\end{figure}
+Specifically, the average loss started at \textbf{0.5801} in the first epoch. As the model iteratively adjusted its weights, the loss steadily dropped to \textbf{0.4977} (Epoch 2), \textbf{0.4213} (Epoch 4), and finally converged to \textbf{0.3593} by the sixth epoch.
+
+This significant reduction (approximately 38\%) indicates that the Mini U-Net was successfully optimizing its parameters to distinguish between infection lesions and background, showing no signs of instability or divergence.
+
+\section{Discussion}
+The results indicate that while the "Mini U-Net" is lightweight, it is capable of learning the general structure of COVID-19 infections.
+\begin{itemize}
+    \item \textbf{Performance Analysis:} With a Mean Dice Score of 0.3202 and Mean IoU of 0.2534, the model demonstrates a moderate ability to segment infection regions. This performance is reasonable given the low input resolution ($128 \times 128$) and the limited number of training epochs (6).
+    \item \textbf{Challenges:} The absolute scores reflect the inherent difficulty of the task. Infection boundaries in X-rays are often diffuse, and the downsampling process may cause small lesions to be lost. However, the trade-off yields a significantly faster training time.
+\end{itemize}
+
+\section{Conclusion}
+This study successfully implemented a lightweight segmentation pipeline for COVID-19 X-ray images. By optimizing the U-Net architecture and training for 6 epochs, I achieved a functional model that balances computational efficiency and segmentation capability. Future work will focus on increasing the resolution and implementing Attention mechanisms to improve sensitivity to small lesions.
+
+\begin{thebibliography}{00}
+\bibitem{b1} O. Ronneberger, P. Fischer, and T. Brox, "U-Net: Convolutional Networks for Biomedical Image Segmentation," in \textit{MICCAI}, 2015.
+\bibitem{b2} Dataset Source: "COVID-QU-Ex Dataset / Infection Segmentation Data," Kaggle.
+\end{thebibliography}
+
+\end{document}

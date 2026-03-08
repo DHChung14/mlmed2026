@@ -1,0 +1,118 @@
+\documentclass[conference]{IEEEtran}
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{float}
+
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+\title{ECG Heartbeat Categorization using Random Forest}
+
+\author{\IEEEauthorblockN{Do Hong Chung}
+\IEEEauthorblockA{\textit{Department of Data Science} \\
+\textit{University of Science and Technology of Hanoi}\\
+Hanoi, Vietnam \\
+chungdh.22ba13055@usth.edu.vn}
+\IEEEauthorblockA{Student ID: 22BA13055}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Electrocardiogram (ECG) heartbeat classification is essential for the automated diagnosis of cardiac arrhythmias. In this report, I reproduce the heartbeat categorization task on the MIT-BIH Arrhythmia Dataset. While state-of-the-art methods typically employ Convolutional Neural Networks (CNNs) as presented in the reference paper [1], I implement a robust machine learning baseline using a Random Forest Classifier. The model is trained to classify heartbeats into five categories: Normal (N), Supraventricular (S), Ventricular (V), Fusion (F), and Unknown (Q). The experimental results show that the Random Forest model achieves a competitive accuracy, demonstrating its efficacy as a lightweight alternative to deep learning models.
+\end{abstract}
+
+\begin{IEEEkeywords}
+ECG, Arrhythmia, Random Forest, MIT-BIH, Classification.
+\end{IEEEkeywords}
+
+\section{Introduction}
+Cardiovascular diseases are the leading cause of death globally. The Electrocardiogram (ECG) is the most common tool for monitoring heart activity. However, manual analysis of long-term ECG recordings is tedious and prone to error. 
+
+The goal of this assignment is to build an automated classification model. I utilize the MIT-BIH Arrhythmia Database, a standard benchmark for this task. I compare my implementation's performance against the results reported in "ECG Heartbeat Classification: A Deep Transferable Representation" [1], which achieved 98.06\% accuracy using deep learning.
+
+\section{Dataset Description}
+I downloaded the dataset from Kaggle, which is a pre-processed version of the MIT-BIH Arrhythmia Database.
+
+\subsection{Data Structure}
+The dataset consists of two CSV files:
+\begin{itemize}
+    \item \textbf{Training Set:} \texttt{mitbih\_train.csv} (87,554 samples).
+    \item \textbf{Test Set:} \texttt{mitbih\_test.csv} (21,892 samples).
+\end{itemize}
+
+Each sample represents a single heartbeat, segmented and padded to a fixed length of 187 time steps. The last column represents the class label.
+
+\subsection{Classes}
+The dataset contains 5 imbalance classes:
+\begin{enumerate}
+    \item \textbf{N (0):} Normal Beat (Majority class).
+    \item \textbf{S (1):} Supraventricular premature beat.
+    \item \textbf{V (2):} Premature ventricular contraction.
+    \item \textbf{F (3):} Fusion of ventricular and normal beat.
+    \item \textbf{Q (4):} Unclassifiable beat.
+\end{enumerate}
+
+Fig. \ref{fig:eda} shows representative waveforms for each class.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth]{DATA_EXPLORATION.png}
+\caption{Representative ECG signals for each of the 5 classes from the training set.}
+\label{fig:eda}
+\end{figure}
+
+\section{Methodology}
+I implemented the classification pipeline using Python and Scikit-learn.
+
+\subsection{Model Selection}
+Instead of a complex Deep Neural Network, I chose the \textbf{Random Forest Classifier}. Random Forest is an ensemble method that operates by constructing a multitude of decision trees. It handles high-dimensional data well and is less prone to overfitting than a single decision tree.
+
+\subsection{Implementation Details}
+\begin{itemize}
+    \item \textbf{Input:} Raw 187-point time-series vectors.
+    \item \textbf{Hyperparameters:} 
+    \begin{itemize}
+        \item \texttt{n\_estimators = 100}: Number of trees.
+        \item \texttt{class\_weight = 'balanced'}: To handle the significant class imbalance (Normal beats dominate the dataset).
+        \item \texttt{random\_state = 42}: For reproducibility.
+    \end{itemize}
+\end{itemize}
+
+\section{Experiments and Results}
+
+\subsection{Quantitative Results}
+The model was evaluated on the unseen test set of 21,892 samples. 
+
+\begin{itemize}
+    \item \textbf{Overall Accuracy:} Approximately \textbf{97.5\%}.
+    \item \textbf{Reference Paper Accuracy:} 98.06\% (using CNN).
+\end{itemize}
+
+My Random Forest model achieved performance very close to the deep learning baseline, with a gap of less than 1\%.
+
+\subsection{Error Analysis}
+Fig. \ref{fig:cm} displays the Confusion Matrix. The model performs exceptionally well on the Normal (N) class. The majority of errors come from distinguishing Supraventricular (S) and Fusion (F) beats, which are visually similar to normal beats in certain leads.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\linewidth]{CONFUSION_MATRIX.png}
+\caption{Confusion Matrix on the Test Set. The diagonal elements represent correct predictions.}
+\label{fig:cm}
+\end{figure}
+
+\section{Conclusion}
+In this report, I successfully implemented an ECG heartbeat categorization system using Random Forest. While the original paper [1] demonstrates that Convolutional Neural Networks can extract spatial features more effectively, my experiment proves that classical machine learning remains a powerful and efficient alternative, achieving comparable accuracy with significantly lower computational resources.
+
+\begin{thebibliography}{00}
+\bibitem{b1} M. Kachuee, S. Fazeli, and M. Sarrafzadeh, "ECG Heartbeat Classification: A Deep Transferable Representation," in \textit{IEEE International Conference on Healthcare Informatics (ICHI)}, 2018. arXiv:1805.00794.
+\end{thebibliography}
+
+\end{document}
